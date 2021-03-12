@@ -1158,17 +1158,6 @@ def get_suncc_version(conf, cc):
 	else:
 		conf.fatal('Could not determine the suncc version.')
 
-# ============ the --as-needed flag should added during the configuration, not at runtime =========
-
-@conf
-def add_as_needed(self):
-	"""
-	Adds ``--as-needed`` to the *LINKFLAGS*
-	On some platforms, it is a default flag.  In some cases (e.g., in NS-3) it is necessary to explicitly disable this feature with `-Wl,--no-as-needed` flag.
-	"""
-	if self.env.DEST_BINFMT == 'elf' and 'gcc' in (self.env.CXX_NAME, self.env.CC_NAME):
-		self.env.append_unique('LINKFLAGS', '-Wl,--as-needed')
-
 # ============ parallel configuration
 
 class cfgtask(Task.Task):

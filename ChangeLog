@@ -7,6 +7,7 @@ CHANGES IN WAF 2.1.0
 - Remove waflib.Task.TaskBase
 - Remove the upper class of waflib.Task.Task (metaclass syntax)
 - Remove Winphone/WinCE detection in msvc.py
+- Remove conf.add_as_needed because it does not check for the flag usage
 
 CHANGES IN WAF 2.0.0
 --------------------
@@ -20,12 +21,12 @@ CHANGES IN WAF 2.0.0
 * Accept nested lists and generators in bld(source=...)
 * Sort TaskGen methods in alphabetical order by reversing TaskGen.prec order
 
-* Remove 'ut_fun' from waf_unit_test.py
-* Remove Node.sig and Node.cache_sig
-* Remove the BuildContext.rule decorator
-* Remove Task.update_outputs, Task.always_run
-* Remove atleast-version, exact-version and max-version from conf.check_cfg
-* Remove c_preproc.trimquotes
-* Remove field_name, type_name, function_name from conf.check() tests
-* Remove extras/mem_reducer.py as a better solution has been merged
-* Remove Utils.ex_stack (use traceback.format_exc())
+- Remove 'ut_fun' from waf_unit_test.py
+- Remove Node.sig and Node.cache_sig
+- Remove the BuildContext.rule decorator
+- Remove Task.update_outputs, Task.always_run
+- Remove atleast-version, exact-version and max-version from conf.check_cfg
+- Remove c_preproc.trimquotes
+- Remove field_name, type_name, function_name from conf.check() tests
+- Remove extras/mem_reducer.py as a better solution has been merged
+- Remove Utils.ex_stack (use traceback.format_exc())
