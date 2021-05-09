@@ -188,13 +188,14 @@ class Context(ctx):
 			Logs.free_logger(logger)
 			delattr(self, 'logger')
 
-	def load(self, tool_list, *k, **kw):
+	def load(self, tool_list, **kw):
 		"""
-		Loads a Waf tool as a module, and try calling the function named :py:const:`waflib.Context.Context.fun`
-		from it.  A ``tooldir`` argument may be provided as a list of module paths.
+		Loads a Waf tool as a module, and try calling the function named :py:const:`waflib.Context.Context.fun` from it.
 
 		:param tool_list: list of Waf tool names to load
 		:type tool_list: list of string or space-separated string
+		:param tooldir: paths for the imports
+		:type tooldir: list of string
 		"""
 		tools = Utils.to_list(tool_list)
 		path = Utils.to_list(kw.get('tooldir', ''))
