@@ -241,14 +241,15 @@ class ConfigurationContext(Context.Context):
 		"""
 
 		tools = Utils.to_list(tool_list)
-		if tooldir:
-			tooldir = Utils.to_list(tooldir)
+		tooldir = Utils.to_list(kw.get('tooldir', ''))
+		with_sys_path = kw.get('with_sys_path', True)
+		funs = kw.get('funs')
 		for tool in tools:
 			# avoid loading the same tool more than once with the same functions
 			# used by composite projects
 
-			if cache:
-				mag = (tool, id(self.env), tooldir, funs)
+			if kw.get('cache'):
+				mag = (tool, id(self.env), tuple(tooldir), funs)
 				if mag in self.tool_cache:
 					self.to_log('(tool %s is already loaded, skipping)' % tool)
 					continue
