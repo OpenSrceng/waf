@@ -53,8 +53,6 @@ py_compile.compile(sys.argv[1], sys.argv[2], sys.argv[3], True)
 Piece of Python code used in :py:class:`waflib.Tools.python.pyo` and :py:class:`waflib.Tools.python.pyc` for byte-compiling python files
 """
 
-DISTUTILS_IMP = ['from distutils.sysconfig import get_config_var, get_python_lib']
-
 @before_method('process_source')
 @feature('py')
 def feature_py(self):
@@ -189,51 +187,66 @@ def init_pyembed(self):
 		self.uselib.append('PYEMBED')
 
 @conf
-def get_python_variables(self, variables, imports=None):
+def get_sysconfig_variable(self, variable):
+	"""
+	Spawn a new python process to dump configuration variables
+
+	:param variable: variable to print
+	:type variable: string
+	:return: the variable value
+	:rtype: string
+	"""
+
+	env = dict(os.environ)
+	try:
+		del env['MACOSX_DEPLOYMENT_TARGET'] # see comments in the OSX tool
+	except KeyError:
+		pass
+
+	cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_config_var('{}'))".format(variable)]
+	out = self.cmd_and_log(cmd, env=env).strip()
+
+	if out == "None":
+		return ""
+	else:
+		return out
+
+@conf
+def get_sysconfig_variables(self, variables):
 	"""
 	Spawn a new python process to dump configuration variables
 
 	:param variables: variables to print
 	:type variables: list of string
-	:param imports: one import by element
-	:type imports: list of string
 	:return: the variable values
 	:rtype: list of string
 	"""
-	if not imports:
-		try:
-			imports = self.python_imports
-		except AttributeError:
-			imports = DISTUTILS_IMP
+	return [self.get_sysconfig_variable(variable=v) for v in variables]
 
-	program = list(imports) # copy
-	program.append('')
-	for v in variables:
-		program.append("print(repr(%s))" % v)
-	os_env = dict(os.environ)
+@conf
+def get_sysconfig_path(self, name):
+	"""
+	Spawn a new python process to dump configuration paths
+
+	:param name: path to print
+	:type variable: string
+	:return: the path value
+	:rtype: string
+	"""
+
+	env = dict(os.environ)
 	try:
-		del os_env['MACOSX_DEPLOYMENT_TARGET'] # see comments in the OSX tool
+		del env['MACOSX_DEPLOYMENT_TARGET'] # see comments in the OSX tool
 	except KeyError:
 		pass
 
-	try:
-		out = self.cmd_and_log(self.env.PYTHON + ['-c', '\n'.join(program)], env=os_env)
-	except Errors.WafError:
-		self.fatal('The distutils module is unusable: install "python-devel"?')
-	self.to_log(out)
-	return_values = []
-	for s in out.splitlines():
-		s = s.strip()
-		if not s:
-			continue
-		if s == 'None':
-			return_values.append(None)
-		elif (s[0] == "'" and s[-1] == "'") or (s[0] == '"' and s[-1] == '"'):
-			return_values.append(eval(s))
-		elif s[0].isdigit():
-			return_values.append(int(s))
-		else: break
-	return return_values
+	cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path('{}'))".format(name)]
+	out = self.cmd_and_log(cmd, env=env).strip()
+
+	if out == "None":
+		return ""
+	else:
+		return out
 
 @conf
 def test_pyembed(self, mode, msg='Testing pyembed configuration'):
@@ -291,7 +304,7 @@ def python_cross_compile(self, features='pyembed pyext'):
 @conf
 def check_python_headers(conf, features='pyembed pyext'):
 	"""
-	Check for headers and libraries necessary to extend or embed python by using the module *distutils*.
+	Check for headers and libraries necessary to extend or embed python by using the module *sysconfig*.
 	On success the environment variables xxx_PYEXT and xxx_PYEMBED are added:
 
 	* PYEXT: for compiling python extensions
@@ -317,7 +330,7 @@ def check_python_headers(conf, features='pyembed pyext'):
 	# so we actually do all this for compatibility reasons and for obtaining pyext_PATTERN below
 	v = 'prefix SO LDFLAGS LIBDIR LIBPL INCLUDEPY Py_ENABLE_SHARED MACOSX_DEPLOYMENT_TARGET LDSHARED CFLAGS LDVERSION'.split()
 	try:
-		lst = conf.get_python_variables(["get_config_var('%s') or ''" % x for x in v])
+		lst = conf.get_sysconfig_variables(variables=v)
 	except RuntimeError:
 		conf.fatal("Python development headers not found (-v for details).")
 
@@ -439,7 +452,7 @@ def check_python_headers(conf, features='pyembed pyext'):
 		env.LIBPATH_PYEXT = env.LIBPATH_PYEMBED
 		env.LIB_PYEXT = env.LIB_PYEMBED
 
-	conf.to_log("Include path for Python extensions (found via distutils module): %r\n" % (dct['INCLUDEPY'],))
+	conf.to_log("Include path for Python extensions (found via sysconfig module): %r\n" % (dct['INCLUDEPY'],))
 	env.INCLUDES_PYEXT = [dct['INCLUDEPY']]
 	env.INCLUDES_PYEMBED = [dct['INCLUDEPY']]
 
@@ -452,15 +465,13 @@ def check_python_headers(conf, features='pyembed pyext'):
 		env.append_unique('CXXFLAGS_PYEXT', ['-fno-strict-aliasing'])
 
 	if env.CC_NAME == "msvc":
-		from distutils.msvccompiler import MSVCCompiler
-		dist_compiler = MSVCCompiler()
-		dist_compiler.initialize()
-		env.append_value('CFLAGS_PYEXT', dist_compiler.compile_options)
-		env.append_value('CXXFLAGS_PYEXT', dist_compiler.compile_options)
-		env.append_value('LINKFLAGS_PYEXT', dist_compiler.ldflags_shared)
+		# From https://github.com/python/cpython/blob/main/Lib/distutils/msvccompiler.py
+		env.append_value('CFLAGS_PYEXT', [ '/nologo', '/Ox', '/MD', '/W3', '/GX', '/DNDEBUG'])
+		env.append_value('CXXFLAGS_PYEXT', [ '/nologo', '/Ox', '/MD', '/W3', '/GX', '/DNDEBUG'])
+		env.append_value('LINKFLAGS_PYEXT', ['/DLL', '/nologo', '/INCREMENTAL:NO'])
 
 	# See if it compiles
-	conf.check(header_name='Python.h', define_name='HAVE_PYTHON_H', uselib='PYEMBED', fragment=FRAG, errmsg='Distutils not installed? Broken python installation? Get python-config now!')
+	conf.check(header_name='Python.h', define_name='HAVE_PYTHON_H', uselib='PYEMBED', fragment=FRAG, errmsg='Broken python installation? Get python-config now!')
 
 @conf
 def check_python_version(conf, minver=None):
@@ -504,19 +515,7 @@ def check_python_version(conf, minver=None):
 			# Check environment for PYTHONDIR
 			pydir = conf.environ['PYTHONDIR']
 		else:
-			# Finally, try to guess
-			if Utils.is_win32:
-				(python_LIBDEST, pydir) = conf.get_python_variables(
-					  ["get_config_var('LIBDEST') or ''",
-					   "get_python_lib(standard_lib=0) or ''"])
-			else:
-				python_LIBDEST = None
-				(pydir,) = conf.get_python_variables( ["get_python_lib(standard_lib=0, prefix=%r) or ''" % conf.env.PREFIX])
-			if python_LIBDEST is None:
-				if conf.env.LIBDIR:
-					python_LIBDEST = os.path.join(conf.env.LIBDIR, 'python' + pyver)
-				else:
-					python_LIBDEST = os.path.join(conf.env.PREFIX, 'lib', 'python' + pyver)
+			pydir = conf.get_sysconfig_path('stdlib')
 
 		if 'PYTHONARCHDIR' in conf.env:
 			# Check if --pythonarchdir was specified
@@ -526,7 +525,8 @@ def check_python_version(conf, minver=None):
 			pyarchdir = conf.environ['PYTHONARCHDIR']
 		else:
 			# Finally, try to guess
-			(pyarchdir, ) = conf.get_python_variables( ["get_python_lib(plat_specific=1, standard_lib=0, prefix=%r) or ''" % conf.env.PREFIX])
+			pyarchdir = conf.get_sysconfig_path('platstdlib')
+
 			if not pyarchdir:
 				pyarchdir = pydir
 
