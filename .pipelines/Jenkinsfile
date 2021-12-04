@@ -10,9 +10,6 @@ pipeline {
                     }
                     steps {
                         sh 'python3 ./waf-light'
-                        stash includes: 'waf', name: 'waf'
-                    }
-                    steps {
                         sh 'python2.7 ./waf --help'
                         stash includes: 'waf', name: 'waf'
                     }
