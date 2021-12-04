@@ -9,7 +9,11 @@ pipeline {
                         label "ubuntu"
                     }
                     steps {
-                        sh 'python2.7 ./waf-light'
+                        sh 'python3 ./waf-light'
+                        stash includes: 'waf', name: 'waf'
+                    }
+                    steps {
+                        sh 'python2.7 ./waf --help'
                         stash includes: 'waf', name: 'waf'
                     }
                 }
@@ -155,7 +159,7 @@ cd tests/install_group/
                             steps {
                                 sh '''
         export WAF_NO_PREFORK=1
-        /home/jenkins/jython/bin/jython ./waf-light
+        python3 ./waf-light
         cp waf demos/c
         cd demos/c
         /home/jenkins/jython/bin/jython ./waf distclean configure clean build
