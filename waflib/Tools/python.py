@@ -585,13 +585,12 @@ def check_python_module(conf, module_name, condition=''):
 		if ret == 'unknown version':
 			conf.fatal('Could not check the %s version' % module_name)
 
-		from distutils.version import LooseVersion
 		def num(*k):
 			if isinstance(k[0], int):
-				return LooseVersion('.'.join([str(x) for x in k]))
+				return Utils.loose_version('.'.join([str(x) for x in k]))
 			else:
-				return LooseVersion(k[0])
-		d = {'num': num, 'ver': LooseVersion(ret)}
+				return Utils.loose_version(k[0])
+		d = {'num': num, 'ver': Utils.loose_version(ret)}
 		ev = eval(condition, {}, d)
 		if not ev:
 			conf.fatal('The %s version does not satisfy the requirements' % module_name)
