@@ -515,7 +515,7 @@ def check_python_version(conf, minver=None):
 			# Check environment for PYTHONDIR
 			pydir = conf.environ['PYTHONDIR']
 		else:
-			pydir = conf.get_sysconfig_path('stdlib')
+			pydir = conf.get_sysconfig_path('purelib')
 
 		if 'PYTHONARCHDIR' in conf.env:
 			# Check if --pythonarchdir was specified
@@ -525,7 +525,7 @@ def check_python_version(conf, minver=None):
 			pyarchdir = conf.environ['PYTHONARCHDIR']
 		else:
 			# Finally, try to guess
-			pyarchdir = conf.get_sysconfig_path('platstdlib')
+			pyarchdir = conf.get_sysconfig_path('platlib')
 
 			if not pyarchdir:
 				pyarchdir = pydir
