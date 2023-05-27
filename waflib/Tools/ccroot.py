@@ -50,7 +50,7 @@ def create_compiled_task(self, name, node):
 	:return: The task created
 	:rtype: :py:class:`waflib.Task.Task`
 	"""
-	out = '%s.%d.o' % (node.name, self.idx)
+	out = '%s.%s.o' % (node.name, self.target)
 	task = self.create_task(name, node, node.parent.find_or_declare(out))
 	try:
 		self.compiled_tasks.append(task)
